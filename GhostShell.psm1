@@ -22,7 +22,12 @@ $GLOBAL_JSON_BACKUP_FILE = "Config.bkup.json"
 $GLOBAL_JSON = $MODULE_PATH + "\" + $MODULE_FOLDER_NAME + "\" + $GLOBAL_JSON_FILE
 $GLOBAL_JSON_BACKUP = $MODULE_PATH + "\" + $MODULE_FOLDER_NAME + "\" + $GLOBAL_JSON_BACKUP_FILE
 $DEFAULT_SMTP_ENTRY = "smtp.domain.com"
-
+$ENV_TEMP = $ENV:Temp
+$RANDOM_STRING = New-RandomString
+$RANDOM_FILE_NAME_HTML = ($RANDOM_STRING + ".HTML").ToString()
+$RANDOM_FILE_NAME_PDF = ($RANDOM_STRING + ".PDF").ToString()
+$TEMP_FILE_HTML = $ENV_TEMP + "\" + $RANDOM_FILE_NAME_HTML
+$TEMP_FILE_PDF = $ENV_TEMP + "\" + $RANDOM_FILE_NAME_PDF
 #INTERNAL FUNCTIONS
 Function Test-GhostShellModulePath {
     $registryPSModulePath = ([Environment]::GetEnvironmentVariable("PSModulePath", "Machine")) -split ";"
@@ -61,7 +66,6 @@ Function New-RandomString {
 }
 Function Get-GhostShellMailMessageOptionalParameters {
     $OptionalParams = @{}
-    
     if ($Credential -ne $null) {
         $OptionalParams  += @{"Credential" = $Credential;}
     }
@@ -71,15 +75,30 @@ Function Get-GhostShellMailMessageOptionalParameters {
     if ($Cc -ne $null) {
         $OptionalParams  += @{"Cc" = $Cc;}
     }
-    if ($AttachAsHTML -ne $null) {
-        $OptionalParams += @{"Attachments" = $HTMLOutputFile;}
+    if ($AttachAsHTML -ne $null -and $AttachAsPDF -ne $null) {
+        $OptionalParams += @{"Attachments" = $TEMP_FILE_HTML, $TEMP_FILE_PDF;}
+    }
+    if ($AttachAsHTML -ne $null -and $AttachAsPDF -eq $null) {
+        $OptionalParams += @{"Attachments" = $TEMP_FILE_HTML;}
         #How to do two attachments
         #$OptionalParams += @{"Attachments" = $HTMLOutputFile, "C:\Users\Mike\AppData\Local\Temp\test.txt";}
     }
-
-    Write-Output $OptionalParams
+    if ($AttachAsPDF -ne $null -and $AttachAsHTML -eq $null) {
+        $OptionalParams += @{"Attachments" = $TEMP_FILE_PDF;}
     }
-
+    Write-Output $OptionalParams
+}
+Function ConvertTo-GhostShellHTML ($RANDOM_FILE_NAME_HTML) {
+    $Body | Out-File $TEMP_FILE_HTML
+}
+Function ConvertTo-GhostShellPDF {
+    If ((Test-Path -Path $TEMP_FILE_HTML) -eq $False) {
+        $Body | Out-File $TEMP_FILE_HTML
+    }
+    $Application = "wkhtmltopdf.exe"
+    $Quiet = "-q"
+    & $Application $Quiet $TEMP_FILE_HTML $TEMP_FILE_PDF 
+}
 Function Create-HTMLFormat {
      #Prepare HTML code
      
@@ -101,6 +120,11 @@ Function Create-HTMLFragments {
     }
     $Fragments = $H1 + $H3
     Write-Output $Fragments
+}
+
+Function Remove-TempFiles  {
+    Remove-Item $TEMP_FILE_HTML
+    Remove-Item $TEMP_FILE_PDF
 }
 
 #EXTERNAL FUNCTIONS
@@ -183,11 +207,12 @@ Function Send-GhostShellMailMessage {
     }
 
     If (($AttachAsHTML.IsPresent) -eq $true){
-        $ENVTemp = $ENV:Temp
-        
-            $HTMLOutputFile = $ENVTemp + "`\" + ((New-RandomString) + ".HTML").ToString()
-            $Body | Out-File $HTMLOutputFile
+        ConvertTo-GhostShellHTML $TEMP_FILE_HTML
     }
+
+    If (($AttachAsPDF.IsPresent) -eq $true){
+        ConvertTo-GhostShellPDF $TEMP_FILE_PDF
+}
 
     $DefaultSmtpParams = @{
         'SmtpServer' = (Get-GhostShellVariables).GLOBAL.mail.smtpServer;
@@ -209,6 +234,9 @@ Function Send-GhostShellMailMessage {
         Write-Verbose -Message "Sending SMTP without optional parameters"
         Send-MailMessage @DefaultSmtpParams -BodyAsHtml -UseSsl
     }
+
+    Remove-TempFiles
+
 }
 
 Export-ModuleMember -Function Get-GhostShellVariables
