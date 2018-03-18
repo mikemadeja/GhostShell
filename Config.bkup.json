@@ -1,0 +1,19 @@
+  {"GLOBAL": {
+    "HTML": {
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/2/2f/PowerShell_5.0_icon.png",
+    "css":"<style>
+BODY{background-color: #E5E8E8;font-family:Calibri;font-size:10pt;color:#000000;}
+TABLE{border-width: 1px; border-collapse: collapse;}
+TH{text-align: left;padding: 5px;background-color:#898B8B;}
+TD{text-align: left;padding: 5px;background-color:#00FFC5;}
+h1 {font-family: Calibri}
+h2 {font-family: Calibri}
+h3 {font-family: Calibri}
+</style>"
+    },
+  "MAIL": {
+    "smtpServer": "smtp.domain.com",
+    "smtpFrom": "no-reply@domain.com"
+        }
+    }
+}
