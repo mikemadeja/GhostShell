@@ -63,6 +63,30 @@ Function Get-GhostShellMailMessageOptionalParameters {
     [hashtable]$hashtable = @{"Bcc" = $Bcc;}
     Write-Output $OptionalParam
     }
+
+Function Create-HTMLFormat {
+     #Prepare HTML code
+     
+     $CSS = (Get-GhostShellVariables).GLOBAL.html.css
+     $PostContent = "<br><a href='https://github.com/mikemadeja'>GhostShell on GitHub</a>"
+     $HTMLParams = @{
+        'Head' = $CSS;
+        'PostContent' = $PostContent;
+    }
+    Write-Output $HTMLParams
+}
+
+Function Create-HTMLFragments {
+    $Fragments = @()
+    $Logo = (Get-GhostShellVariables).GLOBAL.html.logo
+    $H1 = "<H1><Img src=$Logo width=`"64`" height=`"64`">&nbsp;&nbsp;$Header</H1><br>"
+    If ($HttpComment -ne $null) {
+        $H3 = "<H3><a href='$HttpLink'>$HttpComment</a></H3>"
+    }
+    $Fragments = $H1 + $H3
+    Write-Output $Fragments
+}
+
 #EXTERNAL FUNCTIONS
 Function Get-GhostShellVariables {
 <#
@@ -121,30 +145,27 @@ Function Send-GhostShellMailMessage {
         [Int]$Port = 25,
         [Hashtable]$OptionalParameters
     )
+    #Test to make sure the JSON file is valid
     Test-GhostShellJSONFilePath
-    #Prepare HTML code
-    $Logo = (Get-GhostShellVariables).GLOBAL.html.logo
-    $CSS = (Get-GhostShellVariables).GLOBAL.html.css
+
+    #Pull SMTP server from JSON file
     $SmtpServer = (Get-GhostShellVariables).GLOBAL.mail.smtpServer
-    $H1 = "<H1><Img src=$Logo width=`"64`" height=`"64`">&nbsp;&nbsp;$Header</H1><br>"
-    If ($HttpComment -ne $null) {
-        $H3 = "<H3><a href='$HttpLink'>$HttpComment</a></H3>"
-    }
 
-    $PostContent = "<br><a href='https://github.com/mikemadeja'>GhostShell on GitHub</a>"
-    $Fragments = @()
-    $Fragments = $H1 + $H3
-
-    $HTMLParams = @{
-        'Head' = $CSS;
-        'PostContent' = $PostContent;
-    }
+    #Call function to create HTML format
+    $HTMLParams = Create-HTMLFormat
+    #Call function to construct the HTML data
+    $Fragments = Create-HTMLFragments
     
+    Write-Verbose -Message $HTMLParams
+    Write-Verbose -Message $Fragments
+    Write-Verbose -Message "Checking Body if it's a string or not"
     If (($Body.GetType().Name -eq "String")) {
+        Write-Verbose -Message "Body is string"
         $Fragments += $Body
         $Body = ConvertTo-Html -PreContent ($Fragments | Out-String) @HTMLParams | Out-String
     }
     Else {
+        Write-Verbose -Message "Body is not string"
         $Fragments += $Body | ConvertTo-Html
         $Body = ConvertTo-Html -Body ($Fragments | Out-String) @HTMLParams | Out-String
     }
@@ -164,6 +185,8 @@ Function Send-GhostShellMailMessage {
         'Body' = $Body;
         'Port' = $Port;
     }
+    Write-Verbose -Message "Default SMTP Parameters"
+    Write-Verbose -Message $DefaultSmtpParams
     $OptionalParameters = Get-GhostShellMailMessageOptionalParameters
 
     If ($OptionalParameters -ne $null) {
