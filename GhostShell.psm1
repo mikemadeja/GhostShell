@@ -59,16 +59,32 @@ Function Test-GhostShellJSONFile {
 Function New-RandomString {
     (-join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})).ToUpper()
 }
-Function Get-GhostShellMailMessageOptionalParameters {   
-    [hashtable]$hashtable = @{"Bcc" = $Bcc;}
-    Write-Output $OptionalParam
+Function Get-GhostShellMailMessageOptionalParameters {
+    $OptionalParams = @{}
+    
+    if ($Credential -ne $null) {
+        $OptionalParams  += @{"Credential" = $Credential;}
+    }
+    if ($Bcc -ne $null) {
+        $OptionalParams  += @{"Bcc" = $Bcc;}
+    }
+    if ($Cc -ne $null) {
+        $OptionalParams  += @{"Cc" = $Cc;}
+    }
+    if ($AttachAsHTML -ne $null) {
+        $OptionalParams += @{"Attachments" = $HTMLOutputFile;}
+        #How to do two attachments
+        #$OptionalParams += @{"Attachments" = $HTMLOutputFile, "C:\Users\Mike\AppData\Local\Temp\test.txt";}
+    }
+
+    Write-Output $OptionalParams
     }
 
 Function Create-HTMLFormat {
      #Prepare HTML code
      
      $CSS = (Get-GhostShellVariables).GLOBAL.html.css
-     $PostContent = "<br><a href='https://github.com/mikemadeja'>GhostShell on GitHub</a>"
+     $PostContent = "<br><a href='https://github.com/mikemadeja/GhostShell'>GhostShell on GitHub</a>"
      $HTMLParams = @{
         'Head' = $CSS;
         'PostContent' = $PostContent;
@@ -142,14 +158,10 @@ Function Send-GhostShellMailMessage {
         [ValidateNotNullorEmpty()]
         [String]$AttachAsHTMLFileName,
         [Switch]$AttachAsPDF,
-        [Int]$Port = 25,
-        [Hashtable]$OptionalParameters
+        [Int]$Port = 25
     )
     #Test to make sure the JSON file is valid
     Test-GhostShellJSONFilePath
-
-    #Pull SMTP server from JSON file
-    $SmtpServer = (Get-GhostShellVariables).GLOBAL.mail.smtpServer
 
     #Call function to create HTML format
     $HTMLParams = Create-HTMLFormat
@@ -171,14 +183,14 @@ Function Send-GhostShellMailMessage {
     }
 
     If (($AttachAsHTML.IsPresent) -eq $true){
-        If ($AttachAsHTMLFileName -eq $null) {
-            $HTMLOutputFile = 'C:\Users\Mike\AppData\Local\Temp\\' + ((New-RandomString) + ".HTML").ToString()
+        $ENVTemp = $ENV:Temp
+        
+            $HTMLOutputFile = $ENVTemp + "`\" + ((New-RandomString) + ".HTML").ToString()
             $Body | Out-File $HTMLOutputFile
-        }
     }
 
     $DefaultSmtpParams = @{
-        'SmtpServer' = $SmtpServer;
+        'SmtpServer' = (Get-GhostShellVariables).GLOBAL.mail.smtpServer;
         'To' = $To;
         'From' = $From;
         'Subject' = $Subject;
@@ -190,12 +202,13 @@ Function Send-GhostShellMailMessage {
     $OptionalParameters = Get-GhostShellMailMessageOptionalParameters
 
     If ($OptionalParameters -ne $null) {
-        Send-MailMessage @DefaultSmtpParams @OptionalParameters -BodyAsHtml -Credential $Credential -UseSsl
+        Write-Verbose -Message "Sending SMTP with optional parameters"
+        Send-MailMessage @DefaultSmtpParams @OptionalParameters -BodyAsHtml  -UseSsl
     }
     Else {
-        Send-MailMessage @DefaultSmtpParams -BodyAsHtml -Credential $Credential -UseSsl
+        Write-Verbose -Message "Sending SMTP without optional parameters"
+        Send-MailMessage @DefaultSmtpParams -BodyAsHtml -UseSsl
     }
-    
 }
 
 Export-ModuleMember -Function Get-GhostShellVariables
