@@ -1,3 +1,20 @@
+#Requires -Version 5.0
+<#
+
+.SYNOPSIS
+A PowerShell wrapper for Send-MailMessage that utilizes a JSON file for HTML and other config files.
+
+.DESCRIPTION
+#NEED TO ADD#
+
+.EXAMPLE
+ Get-GhostShellVariables
+
+.LINK
+https://github.com/mikemadeja/GhostShell/blob/master/README.md
+
+#>
+
 $MODULE_PATH = "C:\Program Files\WindowsPowerShell\Modules"
 $MODULE_FOLDER_NAME = "GhostShell"
 $GLOBAL_JSON_FILE = "Config.json"
@@ -48,6 +65,25 @@ Function Get-GhostShellMailMessageOptionalParameters {
     }
 #EXTERNAL FUNCTIONS
 Function Get-GhostShellVariables {
+<#
+
+.SYNOPSIS
+A PowerShell wrapper for Send-MailMessage that utilizes a JSON file for HTML and other config files.
+
+.DESCRIPTION
+#NEED TO ADD#
+
+.EXAMPLE
+Get-GhostShellVariables
+(Get-GhostShellVariables).GLOBAL.mail
+(Get-GhostShellVariables).GLOBAL.mail.smtpServer
+(Get-GhostShellVariables).GLOBAL.html
+(Get-GhostShellVariables).GLOBAL.html.css
+
+.LINK
+https://github.com/mikemadeja/GhostShell/blob/master/README.md
+
+#>
     Test-GhostShellJSONFile
     (Get-Content $GLOBAL_JSON | ConvertFrom-Json)
 }
