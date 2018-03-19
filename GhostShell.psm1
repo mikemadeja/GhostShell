@@ -23,6 +23,8 @@ $GLOBAL_JSON = $MODULE_PATH + "\" + $MODULE_FOLDER_NAME + "\" + $GLOBAL_JSON_FIL
 $GLOBAL_JSON_BACKUP = $MODULE_PATH + "\" + $MODULE_FOLDER_NAME + "\" + $GLOBAL_JSON_BACKUP_FILE
 $DEFAULT_SMTP_ENTRY = "smtp.domain.com"
 $ENV_TEMP = $ENV:Temp
+$ENV_PATHS = $ENV:PATH -split ";"
+$PDF_APPLICATION = "wkhtmltopdf.exe"
 $RANDOM_STRING = New-RandomString
 $RANDOM_FILE_NAME_HTML = ($RANDOM_STRING + ".HTML").ToString()
 $RANDOM_FILE_NAME_PDF = ($RANDOM_STRING + ".PDF").ToString()
@@ -35,6 +37,24 @@ Function Test-GhostShellModulePath {
     #Write-Output -Verbose "$PSScriptRoot"
     Foreach ($regEntry in $registryPSModulePath) {
         $regEntry -match $MODULE_PATH
+    }
+}
+
+Function Test-PDFApplication {
+    $ENVCount = 1
+    Foreach ($ENVPath in $ENV_PATHS) {
+        $ENVPathsCount = $ENV_PATHS.Length
+        
+        $PdfApplicationFullPath = $ENVPath + "\" + $PDF_APPLICATION
+        If ((Test-Path $PdfApplicationFullPath) -eq $False) {
+            If ($ENVPathsCount -eq $ENVCount) {
+                Write-Error -Message "Cannot find $PDF_APPLICATION, please make sure the $PDF_APPLICATION is installed and part of the Environment Variables for PATH" -ErrorAction "Stop"
+            }
+            $ENVCount++
+        }
+        Else {
+            Write-Verbose -Message "Found $PDF_APPLICATION"
+        }
     }
 }
 
@@ -75,16 +95,17 @@ Function Get-GhostShellMailMessageOptionalParameters {
     if ($Cc -ne $null) {
         $OptionalParams  += @{"Cc" = $Cc;}
     }
-    if ($AttachAsHTML -ne $null -and $AttachAsPDF -ne $null) {
+    if (($AttachAsHTML.IsPresent) -eq $True -and ($AttachAsPDF.IsPresent) -eq $True) {
+        Write-Verbose -Message "AttachAsHTML and AttachAsPDF are not selected"
         $OptionalParams += @{"Attachments" = $TEMP_FILE_HTML, $TEMP_FILE_PDF;}
     }
-    if ($AttachAsHTML -ne $null -and $AttachAsPDF -eq $null) {
-        $OptionalParams += @{"Attachments" = $TEMP_FILE_HTML;}
-        #How to do two attachments
-        #$OptionalParams += @{"Attachments" = $HTMLOutputFile, "C:\Users\Mike\AppData\Local\Temp\test.txt";}
-    }
-    if ($AttachAsPDF -ne $null -and $AttachAsHTML -eq $null) {
+    if (($AttachAsHTML.IsPresent) -eq $False -and ($AttachAsPDF.IsPresent) -eq $True) {
+        Write-Verbose -Message "AttachAsHTML is not selected and AttachAsPDF is selected"
         $OptionalParams += @{"Attachments" = $TEMP_FILE_PDF;}
+    }
+    if (($AttachAsHTML.IsPresent -eq $True) -and ($AttachAsPDF.IsPresent) -eq $False) {
+        Write-Verbose -Message "AttachAsHTML is selected and AttachAsPDF is not selected"
+        $OptionalParams += @{"Attachments" = $TEMP_FILE_HTML;}
     }
     Write-Output $OptionalParams
 }
@@ -92,12 +113,13 @@ Function ConvertTo-GhostShellHTML ($RANDOM_FILE_NAME_HTML) {
     $Body | Out-File $TEMP_FILE_HTML
 }
 Function ConvertTo-GhostShellPDF {
+    Test-PDFApplication
     If ((Test-Path -Path $TEMP_FILE_HTML) -eq $False) {
         $Body | Out-File $TEMP_FILE_HTML
     }
     $Application = "wkhtmltopdf.exe"
     $Quiet = "-q"
-    & $Application $Quiet $TEMP_FILE_HTML $TEMP_FILE_PDF 
+    &$Application $Quiet $TEMP_FILE_HTML $TEMP_FILE_PDF
 }
 Function Create-HTMLFormat {
      #Prepare HTML code
@@ -123,8 +145,12 @@ Function Create-HTMLFragments {
 }
 
 Function Remove-TempFiles  {
-    Remove-Item $TEMP_FILE_HTML
-    Remove-Item $TEMP_FILE_PDF
+    If ((Test-Path -Path $TEMP_FILE_HTML) -eq $True) {
+        Remove-Item $TEMP_FILE_HTML -Force
+    }
+    If ((Test-Path -Path $TEMP_FILE_PDF) -eq $True) {
+        Remove-Item $TEMP_FILE_PDF -Force
+    }
 }
 
 #EXTERNAL FUNCTIONS
@@ -205,14 +231,14 @@ Function Send-GhostShellMailMessage {
         $Fragments += $Body | ConvertTo-Html
         $Body = ConvertTo-Html -Body ($Fragments | Out-String) @HTMLParams | Out-String
     }
-
     If (($AttachAsHTML.IsPresent) -eq $true){
+        Write-Verbose -Message "AttachAsHTML is $($AttachAsHTML.IsPresent)"
         ConvertTo-GhostShellHTML $TEMP_FILE_HTML
     }
-
     If (($AttachAsPDF.IsPresent) -eq $true){
+        Write-Verbose -Message "AttachAsPDF is $($AttachAsPDF.IsPresent)"
         ConvertTo-GhostShellPDF $TEMP_FILE_PDF
-}
+    }
 
     $DefaultSmtpParams = @{
         'SmtpServer' = (Get-GhostShellVariables).GLOBAL.mail.smtpServer;
