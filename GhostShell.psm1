@@ -127,7 +127,7 @@ Function Create-HTMLFormat {
      #Prepare HTML code
      
      $CSS = (Get-GhostShellVariables).GLOBAL.html.css
-     $PostContent = "<br><a href='https://github.com/mikemadeja/GhostShell'>GhostShell on GitHub</a>"
+     $PostContent = "<br><a href='https://github.com/mikemadeja/GhostShell' target=`"_blank`">GhostShell on GitHub</a>"
      $HTMLParams = @{
         'Head' = $CSS;
         'PostContent' = $PostContent;
