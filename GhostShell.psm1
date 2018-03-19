@@ -197,10 +197,9 @@ Function Send-GhostShellMailMessage {
         [String]$From,
         $Bcc,
         $Cc,
-        [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential = [System.Management.Automation.PSCredential]::Empty,
+        $Credential,
         [Parameter()]
         [ValidateNotNullorEmpty()]
         [Switch]$AttachAsHTML,
@@ -251,14 +250,13 @@ Function Send-GhostShellMailMessage {
     Write-Verbose -Message "Default SMTP Parameters"
     Write-Verbose -Message $DefaultSmtpParams
     $OptionalParameters = Get-GhostShellMailMessageOptionalParameters
-
-    If ($OptionalParameters -ne $null) {
+    If ($OptionalParameters.keys -ne $null) {
         Write-Verbose -Message "Sending SMTP with optional parameters"
-        Send-MailMessage @DefaultSmtpParams @OptionalParameters -BodyAsHtml  -UseSsl
+        Send-MailMessage @DefaultSmtpParams @OptionalParameters -BodyAsHtml
     }
     Else {
         Write-Verbose -Message "Sending SMTP without optional parameters"
-        Send-MailMessage @DefaultSmtpParams -BodyAsHtml -UseSsl
+        Send-MailMessage @DefaultSmtpParams -BodyAsHtml
     }
 
     Remove-TempFiles
