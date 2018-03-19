@@ -14,6 +14,9 @@ A PowerShell wrapper for Send-MailMessage that utilizes a JSON file for HTML and
 https://github.com/mikemadeja/GhostShell/blob/master/README.md
 
 #>
+Function New-RandomString {
+    (-join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})).ToUpper()
+}
 
 $MODULE_PATH = "C:\Program Files\WindowsPowerShell\Modules"
 $MODULE_FOLDER_NAME = "GhostShell"
@@ -80,12 +83,11 @@ Function Test-GhostShellJSONFile {
     Write-Error "Invalid $GLOBAL_JSON_FILE file!" -ErrorAction "Stop"
   }
 }
-
-Function New-RandomString {
-    (-join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})).ToUpper()
-}
 Function Get-GhostShellMailMessageOptionalParameters {
     $OptionalParams = @{}
+    if (($UseSSL.IsPresent) -eq $True) {
+        $OptionalParams  += @{"UseSSL" = $True;}
+    }
     if ($Credential -ne $null) {
         $OptionalParams  += @{"Credential" = $Credential;}
     }
@@ -197,9 +199,10 @@ Function Send-GhostShellMailMessage {
         [String]$From,
         $Bcc,
         $Cc,
+        [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential,
+        $Credential = [System.Management.Automation.PSCredential],
         [Parameter()]
         [ValidateNotNullorEmpty()]
         [Switch]$AttachAsHTML,
@@ -207,6 +210,9 @@ Function Send-GhostShellMailMessage {
         [ValidateNotNullorEmpty()]
         [String]$AttachAsHTMLFileName,
         [Switch]$AttachAsPDF,
+        [Parameter()]
+        [ValidateNotNullorEmpty()]
+        [Switch]$UseSSL,
         [Int]$Port = 25
     )
     #Test to make sure the JSON file is valid
@@ -249,8 +255,9 @@ Function Send-GhostShellMailMessage {
     }
     Write-Verbose -Message "Default SMTP Parameters"
     Write-Verbose -Message $DefaultSmtpParams
+    
     $OptionalParameters = Get-GhostShellMailMessageOptionalParameters
-    If ($OptionalParameters.keys -ne $null) {
+    If ($OptionalParameters -ne $null) {
         Write-Verbose -Message "Sending SMTP with optional parameters"
         Send-MailMessage @DefaultSmtpParams @OptionalParameters -BodyAsHtml
     }
