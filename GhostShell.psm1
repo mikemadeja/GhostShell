@@ -195,7 +195,6 @@ Function Send-GhostShellMailMessage {
         [String]$HttpLink,
         [Parameter(Mandatory=$true)]
         $Body,
-        [Parameter(Mandatory=$true)]
         [String]$From,
         $Bcc,
         $Cc,
