@@ -121,7 +121,9 @@ Function ConvertTo-GhostShellPDF {
     }
     $Application = "wkhtmltopdf.exe"
     $Quiet = "-q"
-    &$Application $Quiet $TEMP_FILE_HTML $TEMP_FILE_PDF
+    $DPI = "--dpi 600 "
+    #&$Application $Quiet $DPI $TEMP_FILE_HTML $TEMP_FILE_PDF
+    &$Application @($Quiet, $TEMP_FILE_HTML, $TEMP_FILE_PDF)
 }
 Function Create-HTMLFormat {
      #Prepare HTML code
@@ -131,6 +133,7 @@ Function Create-HTMLFormat {
      $HTMLParams = @{
         'Head' = $CSS;
         'PostContent' = $PostContent;
+        'Title' = $Subject;
     }
     Write-Output $HTMLParams
 }
