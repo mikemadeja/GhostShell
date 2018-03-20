@@ -196,7 +196,7 @@ Function Send-GhostShellMailMessage {
         [Parameter(Mandatory=$true)]
         $Body,
         [Parameter(Mandatory=$true)]
-        [String]$From = ((Get-GhostShellVariables).GLOBAL.mail.smtpFrom),
+        [String]$From,
         $Bcc,
         $Cc,
         [ValidateNotNull()]
@@ -248,7 +248,7 @@ Function Send-GhostShellMailMessage {
     $DefaultSmtpParams = @{
         'SmtpServer' = (Get-GhostShellVariables).GLOBAL.mail.smtpServer;
         'To' = $To;
-        'From' = $From;
+        'From' = (Get-GhostShellVariables).GLOBAL.mail.smtpFrom;
         'Subject' = $Subject;
         'Body' = $Body;
         'Port' = $Port;
