@@ -25,7 +25,6 @@ $GLOBAL_JSON_BACKUP_FILE = "Config.bkup.json"
 $GLOBAL_JSON = $MODULE_PATH + "\" + $MODULE_FOLDER_NAME + "\" + $GLOBAL_JSON_FILE
 $GLOBAL_JSON_BACKUP = $MODULE_PATH + "\" + $MODULE_FOLDER_NAME + "\" + $GLOBAL_JSON_BACKUP_FILE
 $DEFAULT_SMTP_ENTRY = "smtp.domain.com"
-$DEFAULT_SMTP_FROM_ENTRY = "no-reply@domain.com"
 $ENV_TEMP = $ENV:Temp
 $ENV_PATHS = $ENV:PATH -split ";"
 $PDF_APPLICATION = "wkhtmltopdf.exe"
@@ -197,7 +196,7 @@ Function Send-GhostShellMailMessage {
         [Parameter(Mandatory=$true)]
         $Body,
         [Parameter(Mandatory=$true)]
-        [String]$From,
+        [String]$From = ((Get-GhostShellVariables).GLOBAL.mail.smtpFrom),
         $Bcc,
         $Cc,
         [ValidateNotNull()]
@@ -249,7 +248,7 @@ Function Send-GhostShellMailMessage {
     $DefaultSmtpParams = @{
         'SmtpServer' = (Get-GhostShellVariables).GLOBAL.mail.smtpServer;
         'To' = $To;
-        'From' = (Get-GhostShellVariables).GLOBAL.mail.smtpFrom;
+        'From' = $From;
         'Subject' = $Subject;
         'Body' = $Body;
         'Port' = $Port;
