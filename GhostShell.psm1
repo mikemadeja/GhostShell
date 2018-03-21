@@ -1,17 +1,11 @@
 #Requires -Version 5.0
 <#
 
-.SYNOPSIS
-A PowerShell wrapper for Send-MailMessage that utilizes a JSON file for HTML and other config files.
-
 .DESCRIPTION
-#NEED TO ADD#
-
-.EXAMPLE
- Get-GhostShellVariables
+The GhostShell module enables you to have a single configuration file to send unified emails.
 
 .LINK
-https://github.com/mikemadeja/GhostShell/blob/master/README.md
+https://github.com/mikemadeja/GhostShell/wiki
 
 #>
 Function New-RandomString {
@@ -82,6 +76,24 @@ Function Test-GhostShellJSONFile {
   Catch {
     Write-Error "Invalid $GLOBAL_JSON_FILE file!" -ErrorAction "Stop"
   }
+}
+
+Function Test-HTTPComment {
+    If ($HttpComment -ne $null) {
+        Return $True
+    }
+    Else {
+        Return $False
+    }
+}
+
+Function Test-HTTPLink {
+    If ($HTTPLink -match "http*://") {
+        Return $True
+    }
+    Else {
+        Return $False
+    }
 }
 Function Get-GhostShellMailMessageOptionalParameters {
     $OptionalParams = @{}
@@ -162,27 +174,30 @@ Function Remove-TempFiles  {
 Function Get-GhostShellVariables {
 <#
 
-.SYNOPSIS
-A PowerShell wrapper for Send-MailMessage that utilizes a JSON file for HTML and other config files.
-
 .DESCRIPTION
-#NEED TO ADD#
-
-.EXAMPLE
-Get-GhostShellVariables
-(Get-GhostShellVariables).GLOBAL.mail
-(Get-GhostShellVariables).GLOBAL.mail.smtpServer
-(Get-GhostShellVariables).GLOBAL.html
-(Get-GhostShellVariables).GLOBAL.html.css
+Get-GhostShellVariables enables you to call Config.json for global variables that can be used in your scripts. Please use Get-Help Get-GhostShellVariables -Online for more info.
 
 .LINK
-https://github.com/mikemadeja/GhostShell/blob/master/README.md
+https://github.com/mikemadeja/GhostShell/wiki/GhostShell-Commands#get-ghostshellvariables
 
 #>
     Test-GhostShellJSONFile
     (Get-Content $GLOBAL_JSON | ConvertFrom-Json)
 }
+
+
+
+
 Function Send-GhostShellMailMessage {
+    <#
+    
+    .DESCRIPTION
+    Send-GhostShellMailMessage enables you to send a unified email that utilizes the Config.json file. Please use Get-Help Send-GhostShellMailMessage -Online for more info.
+    
+    .LINK
+    https://github.com/mikemadeja/GhostShell/wiki/GhostShell-Commands#send-ghostshellmailmessage
+    
+    #>
     Param(
         [Parameter(Mandatory=$true)]
         $To,
@@ -219,6 +234,12 @@ Function Send-GhostShellMailMessage {
     )
     #Test to make sure the JSON file is valid
     Test-GhostShellJSONFilePath
+<#     If ((Test-HTTPLink) -eq $True -and (Test-HTTPComment) -eq $False) {
+        Write-Error "Missing HTTPComment parameter" -ErrorAction "Stop"
+    }
+    If ((Test-HTTPLink) -eq $False -and (Test-HTTPComment) -eq $True) {
+        Write-Error "Missing HTTPLink parameter" -ErrorAction "Stop"
+    } #>
 
     #Call function to create HTML format
     $HTMLParams = Create-HTMLFormat
@@ -238,11 +259,11 @@ Function Send-GhostShellMailMessage {
         $Fragments += $Body | ConvertTo-Html
         $Body = ConvertTo-Html -Body ($Fragments | Out-String) @HTMLParams | Out-String
     }
-    If (($AttachAsHTML.IsPresent) -eq $true){
+    If (($AttachAsHTML.IsPresent) -eq $True){
         Write-Verbose -Message "AttachAsHTML is $($AttachAsHTML.IsPresent)"
         ConvertTo-GhostShellHTML $TEMP_FILE_HTML
     }
-    If (($AttachAsPDF.IsPresent) -eq $true){
+    If (($AttachAsPDF.IsPresent) -eq $True){
         Write-Verbose -Message "AttachAsPDF is $($AttachAsPDF.IsPresent)"
         ConvertTo-GhostShellPDF $TEMP_FILE_PDF
     }
