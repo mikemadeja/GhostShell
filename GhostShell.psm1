@@ -113,17 +113,19 @@ Function Get-GhostShellMailMessageOptionalParameters {
         $OptionalParams  += @{"Cc" = $Cc;}
     }
 
-    $allAttachments += $Attachments
-    $allAttachments += $TEMP_FILE_HTML
-    $allAttachments += $TEMP_FILE_PDF
+    if ($Attachments) {
+        $allAttachments += $Attachments
+    }
+    if ($AttachBodyAsPDF.IsPresent) {
+        $allAttachments += $TEMP_FILE_PDF
+    }
+    if ($AttachBodyAsHTML.IsPresent) {
+        $allAttachments += $TEMP_FILE_HTML
+    }
 
     if ($allAttachments -ne $null) {
         $OptionalParams += @{"Attachments" = $allAttachments;}
     }
-
-
-
-
     Write-Output $OptionalParams
 }
 Function ConvertTo-GhostShellHTML ($RANDOM_FILE_NAME_HTML) {
