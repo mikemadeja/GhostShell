@@ -30,8 +30,6 @@ $TEMP_FILE_PDF = $ENV_TEMP + "\" + $RANDOM_FILE_NAME_PDF
 #INTERNAL FUNCTIONS
 Function Test-GhostShellModulePath {
     $registryPSModulePath = ([Environment]::GetEnvironmentVariable("PSModulePath", "Machine")) -split ";"
-    #Write-Output -Verbose "$registryPSModulePath"
-    #Write-Output -Verbose "$PSScriptRoot"
     Foreach ($regEntry in $registryPSModulePath) {
         $regEntry -match $MODULE_PATH
     }
@@ -95,32 +93,37 @@ Function Test-HTTPLink {
         Return $False
     }
 }
+
 Function Get-GhostShellMailMessageOptionalParameters {
     $OptionalParams = @{}
     if (($UseSSL.IsPresent) -eq $True) {
+        Write-Verbose -Message "UseSSL is present"
         $OptionalParams  += @{"UseSSL" = $True;}
     }
     if ($Credential -ne $null) {
+         Write-Verbose -Message "Credential is present"
         $OptionalParams  += @{"Credential" = $Credential;}
     }
     if ($Bcc -ne $null) {
+        Write-Verbose -Message "Bcc is present"
         $OptionalParams  += @{"Bcc" = $Bcc;}
     }
     if ($Cc -ne $null) {
+        Write-Verbose -Message "Cc is present"
         $OptionalParams  += @{"Cc" = $Cc;}
     }
-    if (($AttachAsHTML.IsPresent) -eq $True -and ($AttachAsPDF.IsPresent) -eq $True) {
-        Write-Verbose -Message "AttachAsHTML and AttachAsPDF are not selected"
-        $OptionalParams += @{"Attachments" = $TEMP_FILE_HTML, $TEMP_FILE_PDF;}
+
+    $allAttachments += $Attachments
+    $allAttachments += $TEMP_FILE_HTML
+    $allAttachments += $TEMP_FILE_PDF
+
+    if ($allAttachments -ne $null) {
+        $OptionalParams += @{"Attachments" = $allAttachments;}
     }
-    if (($AttachAsHTML.IsPresent) -eq $False -and ($AttachAsPDF.IsPresent) -eq $True) {
-        Write-Verbose -Message "AttachAsHTML is not selected and AttachAsPDF is selected"
-        $OptionalParams += @{"Attachments" = $TEMP_FILE_PDF;}
-    }
-    if (($AttachAsHTML.IsPresent -eq $True) -and ($AttachAsPDF.IsPresent) -eq $False) {
-        Write-Verbose -Message "AttachAsHTML is selected and AttachAsPDF is not selected"
-        $OptionalParams += @{"Attachments" = $TEMP_FILE_HTML;}
-    }
+
+
+
+
     Write-Output $OptionalParams
 }
 Function ConvertTo-GhostShellHTML ($RANDOM_FILE_NAME_HTML) {
@@ -185,9 +188,6 @@ https://github.com/mikemadeja/GhostShell/wiki/GhostShell-Commands#get-ghostshell
     (Get-Content $GLOBAL_JSON | ConvertFrom-Json)
 }
 
-
-
-
 Function Send-GhostShellMailMessage {
     <#
     
@@ -203,7 +203,6 @@ Function Send-GhostShellMailMessage {
         $To,
         [Parameter(Mandatory=$true)]
         [String]$Subject,
-        [Parameter(Mandatory=$true)]
         [String]$Header,
         [parameter(Mandatory=$false,ParameterSetName = 'Http')]
         [ValidateNotNullorEmpty()]
@@ -216,16 +215,23 @@ Function Send-GhostShellMailMessage {
         [String]$From,
         $Bcc,
         $Cc,
+        [String[]]$Attachments,
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
         [Parameter()]
         [ValidateNotNullorEmpty()]
+        [Switch]$AttachBodyAsHTML,
+        [Parameter()]
+        [ValidateNotNullorEmpty()]
         [Switch]$AttachAsHTML,
         [Parameter()]
         [ValidateNotNullorEmpty()]
-        [String]$AttachAsHTMLFileName,
+        [String]$AttachBodyAsHTMLFileName,
+        [Switch]$AttachBodyAsPDF,
+        [Parameter()]
+        [ValidateNotNullorEmpty()]
         [Switch]$AttachAsPDF,
         [Parameter()]
         [ValidateNotNullorEmpty()]
@@ -248,7 +254,6 @@ Function Send-GhostShellMailMessage {
     
     Write-Verbose -Message $HTMLParams
     Write-Verbose -Message $Fragments
-    Write-Verbose -Message "Checking Body if it's a string or not"
     If (($Body.GetType().Name -eq "String")) {
         Write-Verbose -Message "Body is string"
         $Fragments += $Body
@@ -259,13 +264,15 @@ Function Send-GhostShellMailMessage {
         $Fragments += $Body | ConvertTo-Html
         $Body = ConvertTo-Html -Body ($Fragments | Out-String) @HTMLParams | Out-String
     }
-    If (($AttachAsHTML.IsPresent) -eq $True){
-        Write-Verbose -Message "AttachAsHTML is $($AttachAsHTML.IsPresent)"
+    If (($AttachBodyAsHTML.IsPresent) -eq $True){
+        Write-Verbose -Message "AttachBodyAsHTML is $($AttachBodyAsHTML.IsPresent)"
         ConvertTo-GhostShellHTML $TEMP_FILE_HTML
+        Write-Verbose -Message $TEMP_FILE_HTML
     }
-    If (($AttachAsPDF.IsPresent) -eq $True){
-        Write-Verbose -Message "AttachAsPDF is $($AttachAsPDF.IsPresent)"
+    If (($AttachBodyAsPDF.IsPresent) -eq $True){
+        Write-Verbose -Message "AttachBodyAsPDF is $($AttachBodyAsPDF.IsPresent)"
         ConvertTo-GhostShellPDF $TEMP_FILE_PDF
+        Write-Verbose -Message $TEMP_FILE_PDF
     }
 
     $DefaultSmtpParams = @{
@@ -278,7 +285,6 @@ Function Send-GhostShellMailMessage {
     }
     Write-Verbose -Message "Default SMTP Parameters"
     Write-Verbose -Message $DefaultSmtpParams
-    
     $OptionalParameters = Get-GhostShellMailMessageOptionalParameters
     If ($OptionalParameters -ne $null) {
         Write-Verbose -Message "Sending SMTP with optional parameters"
@@ -290,7 +296,12 @@ Function Send-GhostShellMailMessage {
     }
 
     Remove-TempFiles
-
+    If ($AttachAsHTML.IsPresent) {
+        Write-Warning -Message "AttachAsHTML is depricated, please use AttachBodyAsHTML!"
+    }
+        If ($AttachAsPDF.IsPresent) {
+        Write-Warning -Message "AttachAsPDF is depricated, please use AttachBodyAsHTML!"
+    }
 }
 
 Export-ModuleMember -Function Get-GhostShellVariables
